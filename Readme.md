@@ -1,70 +1,166 @@
+from tensorflow.keras.datasets import mnist
 
-
-mean_scores = np.mean(scores, axis=0)
-std_scores = np.std(scores, axis=0)
-scores = (scores - mean_scores) / std_scores #standardization
-
-rows = scores.shape[0]
-cols = scores.shape[1]
-
-X = np.append(np.ones((rows, 1)), scores, axis=1) #include intercept
-y = results.reshape(rows, 1)
-
-theta_init = np.zeros((cols + 1, 1))
-cost, gradient = compute_cost(theta_init, X, y)
-
-print("Cost at initialization", cost)
-print("Gradient at initialization:", gradient)
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
 
 
 
-def gradient_descent(x, y, theta, alpha, iterations):
-    costs = []
-    for i in range(iterations):
-        cost, gradient = compute_cost(theta, x, y)
-        theta -= (alpha * gradient)
-        costs.append(cost)
-    return theta, costs
-theta, costs = gradient_descent(X, y, theta_init, 1, 200)
-print("Theta after running gradient descent:", theta)
-print("Resulting cost:", costs[-1])
+print('x_train shape: ', x_train.shape)
+print('y_train shape: ', y_train.shape)
+print('x_test shape: ', x_test.shape)
+print('y_test shape: ', y_test.shape)
 
 
-plt.plot(costs)
-plt.xlabel("Iterations")
-plt.ylabel("$J(\Theta)$")
-plt.title("Values of Cost Function over iterations of Gradient Descent");
 
-sns.scatterplot(x = X[passed[:, 0], 1],
-                y = X[passed[:, 0], 2],
-                marker = "^",
-                color = "green",
-                s = 60)
-ax = sns.scatterplot(x = X[failed[:, 0], 1],
-                    y = X[failed[:, 0], 2],
-                    marker = "X",
-                    color = "red",
-                    s = 60)
+import matplotlib.pyplot as plt
+%matplotlib inline
 
-ax.legend(["Passed", "Failed"])
-ax.set(xlabel="DMV Written Test 1 Scores", ylabel="DMV Written Test 2 Scores")
-
-x_boundary = np.array([np.min(X[:, 1]), np.max(X[:, 1])])
-y_boundary = -(theta[0] + theta[1] * x_boundary) / theta[2]
-
-sns.lineplot(x = x_boundary, y = y_boundary, color="blue")
-plt.show();
+plt.imshow(x_train[0], cmap = 'binary')
+plt.show()
 
 
-def predict(theta, x):
-    results = x.dot(theta)
-    return results > 0
-p = predict(theta, X)
-print("Training Accuracy:", sum(p==y)[0],"%")
 
-test = np.array([50,79])
-test = (test - mean_scores)/std_scores
-test = np.append(np.ones(1), test)
-probability = logistic_function(test.dot(theta))
-print("A person who scores 50 and 79 on their DMV written tests have a",
-      np.round(probability[0], 2),"probability of passing.")
+y_train[0]
+
+
+
+y_train[:10]
+
+
+
+! pip install keras
+! pip install np_utils
+
+
+
+!pip install --upgrade tensorflow
+
+
+
+
+#from tensorflow.python.keras.utils import to_categorical
+from keras.utils.np_utils import to_categorical
+
+
+y_train_encoded = to_categorical(y_train)
+y_test_encoded = to_categorical(y_test)
+
+
+
+print('y_train shape: ', y_train_encoded.shape)
+print('y_test shape: ', y_test_encoded.shape)
+
+
+
+y_train_encoded[0]
+
+
+
+import numpy as np
+
+x_train_reshaped = np.reshape(x_train, (60000, 784))
+x_test_reshaped = np.reshape(x_test, (10000, 784))
+
+print('x_train_reshaped shape: ', x_train_reshaped.shape)
+print('x_test_reshaped shape: ', x_test_reshaped.shape)
+
+
+
+
+print(set(x_train_reshaped[0]))
+
+
+
+x_mean = np.mean(x_train_reshaped)
+x_std = np.std(x_train_reshaped)
+
+print('mean: ', x_mean)
+print('std: ', x_std)
+
+
+
+
+epsilon = 1e-10
+x_train_norm = (x_train_reshaped - x_mean)/(x_std + epsilon)
+x_test_norm = (x_test_reshaped - x_mean)/(x_std + epsilon)
+
+
+
+print(set(x_train_norm[0]))
+
+
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+model = Sequential([
+    Dense(128, activation = 'relu', input_shape = (784,)),
+    Dense(128, activation = 'relu'),
+    Dense(10, activation = 'softmax')
+])
+
+
+
+
+model.compile(
+    optimizer = 'sgd',
+    loss = 'categorical_crossentropy',
+    metrics = ['accuracy']
+)
+
+model.summary()
+
+
+
+h = model.fit(
+    x_train_norm,
+    y_train_encoded,
+    epochs = 3
+)
+
+
+
+loss, accuracy = model.evaluate(x_test_norm, y_test_encoded)
+
+print('test set accuracy: ', accuracy * 100)
+
+
+
+preds = model.predict(x_test_norm)
+
+print('shape of preds: ', preds.shape)
+
+
+
+plt.figure(figsize = (12, 12))
+
+start_index = 0
+
+for i in range(25):
+    plt.subplot(5, 5, i + 1)
+    plt.grid(False)
+    plt.xticks([])
+    plt.yticks([])
+    pred = np.argmax(preds[start_index + i])
+    actual = np.argmax(y_test_encoded[start_index + i])
+    col = 'g'
+    if pred != actual:
+        col = 'r'
+    plt.xlabel('i={} | pred={} | true={}'.format(start_index + i, pred, actual), color = col)
+    plt.imshow(x_test[start_index + i], cmap='binary')
+plt.show()
+
+
+
+
+
+"""
+Enter the index value in place of the value 8 below for the prediction
+that you want to plot the probability scores for
+"""
+index = 8
+
+plt.plot(preds[index])
+plt.show()
+
+
+
